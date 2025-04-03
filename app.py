@@ -31,6 +31,7 @@ socketio = SocketIO(app)
 rooms = {}
 conn = sqlite3.connect('main.db', check_same_thread=False)
 c = conn.cursor()
+# Add this to create the `rooms` table
 def create_tables():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,19 +49,25 @@ def create_tables():
         datetime TEXT,
         FOREIGN KEY (user) REFERENCES users (username)
     )''')
-    
+
+    c.execute('''CREATE TABLE IF NOT EXISTS rooms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_code TEXT UNIQUE NOT NULL,
+        created_at TEXT
+    )''')
+
     conn.commit()
 
 create_tables()
 
-rooms = {}
+# Update the generate_unique_code function to check the database
 def generate_unique_code(length):
     while True:
         code = "".join(random.choice(ascii_uppercase) for _ in range(length))
-        if code not in rooms:
+        existing_room = c.execute("SELECT * FROM rooms WHERE room_code = ?", (code,)).fetchone()
+        if not existing_room:
             break
     return code
-
 
 @app.route("/", methods=["POST", "GET"])
 def home():
@@ -68,23 +75,108 @@ def home():
         name = session.get('username') or f'Anonymous {random.randint(1, 1000)}'
         code = request.form.get("code")
         join = request.form.get("join", False)
-        create = request.form.get("create", False)
-        
-        if join != False and not code:
+        create = request.form.get("create") == "1"
+
+        print(f"POST Request: join={join}, create={create}, code={code}")
+
+        if join and not code:
             return render_template("home.html", error="Please enter a room code.", code=code)
-        
-        room = code
-        if create != False:
+
+        conn = sqlite3.connect('main.db')
+        c = conn.cursor()
+        if create:
             room = generate_unique_code(4)
-            rooms[room] = {"members": 0, "messages": []}
-        elif code not in rooms:
-            return render_template("home.html", error="Room does not exist.", code=code)
-        
+            print(f"Generated Room Code: {room}")
+
+            try:
+                c.execute("INSERT INTO rooms (room_code, created_at) VALUES (?, ?)", (room, datetime.now()))
+                conn.commit()
+                print(f"Room {room} inserted into database.")
+
+                # Ensure the new room is added to the active rooms dictionary
+                rooms[room] = {"members": 0, "messages": []}
+
+            except sqlite3.Error as e:
+                print(f"Database Error: {e}")
+                conn.close()
+                return render_template("home.html", error=f"Database error: {str(e)}", code=code)
+
+        else:
+            c.execute("SELECT * FROM rooms WHERE room_code = ?", (code,))
+            existing_room = c.fetchone()
+            print(f"Existing Room Query Result: {existing_room}")
+
+            if not existing_room:
+                conn.close()
+                return render_template("home.html", error="Room does not exist.", code=code)
+
+        conn.close()
         session["room"] = room
         session["name"] = name
-        return redirect(url_for("room"))
+        print(f"Redirecting to room {room}...")
+        return redirect(url_for("room", room_code=room))
 
     return render_template("home.html", username=session.get('username'))
+
+
+
+# Update the room route to retrieve messages from the database
+@app.route("/room/<room_code>")
+def room(room_code):
+    session["room"] = room_code
+
+    # Open a fresh DB connection for retrieval
+    conn = sqlite3.connect('main.db')
+    c = conn.cursor()
+
+    room = c.execute("SELECT * FROM rooms WHERE room_code = ?", (room_code,)).fetchone()
+
+    if not room:
+        conn.close()
+        flash("Room does not exist.", "error")
+        return redirect(url_for("home"))
+
+    # Fetch stored messages from the database
+    c.execute("SELECT user, encrypted_message, datetime FROM messages WHERE room_number=? ORDER BY datetime", (room_code,))
+    encrypted_messages = c.fetchall()
+
+    print(f"[DEBUG] Fetched raw messages from DB: {encrypted_messages}")
+
+    conn.close()  # Close connection after fetching
+
+    decrypted_messages = []
+    for user, encrypted_message, timestamp in encrypted_messages:
+        decrypted_message = caesar_decrypt(encrypted_message)
+        print(f"[DEBUG] Decrypting message: {encrypted_message} -> {decrypted_message}")
+        decrypted_messages.append({"user": user, "message": decrypted_message, "time": timestamp})
+
+    print(f"[DEBUG] Final decrypted messages: {decrypted_messages}")
+
+    return render_template("room.html", code=room_code, messages=decrypted_messages)
+
+@app.route("/initial_messages/<room_code>")
+def initial_messages(room_code):
+    conn = sqlite3.connect("main.db")
+    c = conn.cursor()
+    
+    # Fetch messages from the database
+    c.execute("SELECT user, encrypted_message, datetime FROM messages WHERE room_number=? ORDER BY datetime", (room_code,))
+    raw_messages = c.fetchall()
+    conn.close()
+    
+    # Debug: Print fetched messages
+    print(f"[DEBUG] Fetched messages for {room_code}: {raw_messages}")
+    
+    # Decrypt messages
+    messages = []
+    for user, encrypted_message, timestamp in raw_messages:
+        if user is None:
+            user = "Anonymous"
+
+        decrypted_message = caesar_decrypt(encrypted_message)
+        messages.append({"user": user, "message": decrypted_message, "time": timestamp})
+    
+    return jsonify(messages)
 
 @app.route('/faq')
 def faq():
@@ -158,21 +250,6 @@ def user_profile():
     member_since = datetime.strptime(user[4], '%Y-%m-%d %H:%M:%S')
     return render_template('user_profile.html', user=username, email=user[2], member_since=member_since)
 
-@app.route("/room")
-def room():
-    room = session.get("room")
-    if room is None or session.get("name") is None or room not in rooms:
-        return redirect(url_for("home"))
-    
-    c.execute("SELECT user, encrypted_message FROM messages WHERE room_number=?", (room,))
-    encrypted_messages = c.fetchall()
-    decrypted_messages = []
-    for user, encrypted_message in encrypted_messages:
-        decrypted_message = caesar_decrypt(encrypted_message)
-        decrypted_messages.append({"user": user, "message": decrypted_message})
-
-    return render_template("room.html", code=room, messages=decrypted_messages)
-
 @app.route('/active_rooms', methods=['GET'])
 def active_rooms():
     active_rooms_list = list(rooms.keys())
@@ -192,20 +269,34 @@ def active_users():
 @socketio.on("message")
 def message(data):
     room = session.get("room")
-    if room not in rooms:
+    if not room:
         return 
-    
+
     content = {
         "name": session.get("name"),
         "message": data["data"]
     }
 
     encrypted_message = caesar_encrypt(data["data"])
-    c.execute("INSERT INTO messages (room_number, user, encrypted_message, datetime) VALUES (?, ?, ?, ?)",
-              (room, session.get("username"), encrypted_message, datetime.now()))
-    conn.commit()
+
+    print(f"[DEBUG] Saving message in room {room}: {data['data']} (Encrypted: {encrypted_message})")
+
+    # Open a fresh DB connection for insertion
+    conn = sqlite3.connect('main.db')
+    c = conn.cursor()
+
+    try:
+        c.execute("INSERT INTO messages (room_number, user, encrypted_message, datetime) VALUES (?, ?, ?, ?)",
+                  (room, session.get("username"), encrypted_message, datetime.now()))
+        conn.commit()  # Ensure the database saves changes
+        print("[DEBUG] Message inserted successfully.")
+    except sqlite3.Error as e:
+        print(f"[ERROR] Database Error: {e}")
+    finally:
+        conn.close()  # Always close connection after use
+    
     send(content, to=room) 
-    print(f"{session.get('name')} said: {data['data']}")
+    print(f"[DEBUG] {session.get('name')} said: {data['data']}")
 
 @app.route('/modify_account', methods=['GET', 'POST'])
 def modify_account():

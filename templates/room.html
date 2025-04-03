@@ -3,52 +3,67 @@
 <div class="content bg-black text-purple-800 min-h-screen flex justify-center items-center">
   <div class="room-background bg-black border-2 border-purple-500 shadow-md p-4 rounded-lg">
     <div class="message-box">
-    <h2>Room Code: {{ code }}</h2>
-    <div class="messages" id="messages"></div>
-    <div class="inputs">
-      <input
-        type="text"
-        rows="3"
-        placeholder="Message"
-        name="message"
-        id="message"
-        onkeypress="handleKeyPress(event)"
-      />
-      <button type="button" name="send" id="send-btn" onClick="sendMessage()">Send</button>
-      <button type="button" name="disconnect" id="disconnect-btn">Leave Room</button>
+      <h2>Room Code: {{ code }}</h2>
+      <div class="messages" id="messages"></div>
+      <div class="inputs">
+        <input
+          type="text"
+          placeholder="Message"
+          name="message"
+          id="message"
+          onkeypress="handleKeyPress(event)"
+        />
+        <button type="button" id="send-btn" onclick="sendMessage()">Send</button>
+        <button type="button" id="disconnect-btn">Leave Room</button>
+      </div>
     </div>
-  </div>
   </div>
 </div>
 
-    <!-- Footer -->
-    <footer class="p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
-      <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
-      <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
-      <a href="{{ url_for('contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
-  </footer>
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+<!-- Footer -->
+<footer class="p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
+  <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
+  <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
+  <a href="{{ url_for('contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
+</footer>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 
 <script type="text/javascript">
   var socketio = io();
   const messages = document.getElementById("messages");
+  const roomCode = "{{ code }}";  // Get room code from template
 
-  const createMessage = (name, msg, isSent) => {
+  const createMessage = (name, msg, isSent, timestamp) => {
     const content = `
       <div class="message ${isSent ? 'sent' : 'received'}">
         <span class="message-content"><strong>${name}</strong>: ${msg}</span>
-        <span class="timestamp">${new Date().toLocaleString()}</span>
+        <span class="timestamp">${timestamp || new Date().toLocaleString()}</span>
       </div>
     `;
     messages.insertAdjacentHTML('beforeend', content);
-    messages.scrollTop = messages.scrollHeight;  
+    messages.scrollTop = messages.scrollHeight;
   };
 
+  // Fetch chat history when the page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch(`/initial_messages/${roomCode}`)
+      .then(response => response.json())
+      .then(data => {
+        data.forEach(msg => {
+          createMessage(msg.user, msg.message, msg.user === "{{ session['name'] }}", msg.time);
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching initial messages:', error);
+      });
+  });
+
+  // Listen for incoming messages
   socketio.on("message", (data) => {
     if (data.name !== "{{ session['name'] }}") {
-      createMessage(data.name, data.message, false);
+      createMessage(data.name, data.message, false, data.time);
     }
   });
 
@@ -57,7 +72,7 @@
     if (message.value.trim() === "") return;
    
     createMessage("You", message.value, true);
-    socketio.emit("message", { data: message.value });
+    socketio.emit("message", { room: roomCode, data: message.value });
     message.value = "";
   };
 
@@ -68,21 +83,10 @@
   };
 
   const disconnect = () => {
-    socketio.emit("disconnect_request");
-    window.location.href = "/";  
+    socketio.emit("disconnect_request", { room: roomCode });
+    window.location.href = "/";
   };
 
   document.getElementById("disconnect-btn").addEventListener("click", disconnect);
-
-  fetch('/initial_messages')
-    .then(response => response.json())
-    .then(data => {
-      data.forEach(msg => {
-        createMessage(msg.name, msg.message, msg.is_sent);
-      });
-    })
-    .catch(error => {
-      console.error('Error fetching initial messages:', error);
-    });
 </script>
 {% endblock %}
