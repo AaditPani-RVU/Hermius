@@ -8,16 +8,16 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'  # ← change this line
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
@@ -25,5 +25,11 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run tests
-      run: |
-        pytest
+      env:
+        MAIL_PORT: ${{ secrets.MAIL_PORT }}
+        MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+        MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+        MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        MAIL_USE_TLS: ${{ secrets.MAIL_USE_TLS }}
+        MAIL_USE_SSL: ${{ secrets.MAIL_USE_SSL }}
+      run: pytest
