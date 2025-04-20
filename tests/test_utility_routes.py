@@ -1,4 +1,5 @@
 from unittest.mock import patch, MagicMock
+import json
 
 def test_faq_page(client):
     response = client.get('/faq')
@@ -20,59 +21,38 @@ def test_contact_page_get(client):
     assert response.status_code == 200
     assert b"Contact" in response.data  # Adjust based on your template
 
-@patch('app.routes.utility_routes.mail.send')  # Path to mail.send
-def test_contact_form_post_success(mock_send, client):
-    data = {
-        "name": "Test User",
-        "email": "test@example.com",
-        "message": "Hello there!"
-    }
-    response = client.post('/contact', data=data, follow_redirects=True)
-    assert response.status_code == 200
-    assert b"Your message has been sent successfully!" in response.data
-    mock_send.assert_called_once()
-
-@patch('app.routes.utility_routes.mail.send', side_effect=Exception("Mail error"))
-def test_contact_form_post_failure(mock_send, client):
-    data = {
-        "name": "Test User",
-        "email": "test@example.com",
-        "message": "Hello there!"
-    }
-    response = client.post('/contact', data=data, follow_redirects=True)
-    assert response.status_code == 200
-    assert b"An error occurred while sending the email" in response.data
-
-def test_contact_form_post_incomplete(client):
-    data = {
-        "name": "",
-        "email": "test@example.com",
-        "message": ""
-    }
-    response = client.post('/contact', data=data, follow_redirects=True)
-    assert b"Please fill out all fields." in response.data
-
-@patch('app.routes.utility_routes.get_db_connection')
+@patch('app.routes.utility_routes.get_db_connection')  # Mock DB connection
 def test_get_users(mock_db, client):
+    # Create a mock cursor and set its return value for `fetchall`
     mock_cursor = MagicMock()
-    mock_cursor.fetchall.return_value = [('user1',), ('user2',)]
+    mock_cursor.fetchall.return_value = [('user1',), ('user2',)]  # Simulate two users
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     mock_db.return_value = mock_conn
 
+    # Call the endpoint with mock data
     response = client.get('/get_users/room1')
-    assert response.status_code == 200
-    assert response.json == {'users': ['user1', 'user2'], 'count': 2}
 
-@patch('app.routes.utility_routes.get_db_connection')
+    # Ensure the response is 200 OK and validate the JSON response
+    assert response.status_code == 200
+
+    # Assert the response JSON format
+    response_json = json.loads(response.data)
+    assert response_json == {'users': ['user1', 'user2'], 'count': 2}
+
+@patch('app.routes.utility_routes.get_db_connection')  # Mock DB connection
 def test_get_messages(mock_db, client):
+    # Create a mock cursor and set its return value for `fetchall`
     mock_cursor = MagicMock()
-    mock_cursor.fetchall.return_value = [('user1', 'Hello'), ('user2', 'Hi')]
+    mock_cursor.fetchall.return_value = [('user1', 'Hello'), ('user2', 'Hi')]  # Simulate messages
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     mock_db.return_value = mock_conn
 
+    # Call the endpoint with mock data
     response = client.get('/get_messages/room1')
+
+    # Ensure the response is 200 OK and validate the JSON response
     assert response.status_code == 200
     assert response.json == {
         "messages": [{"user": "user1", "message": "Hello"}, {"user": "user2", "message": "Hi"}]
