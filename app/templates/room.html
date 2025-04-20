@@ -51,44 +51,52 @@
     
 
 
-<body class="bg-black text-purple-400">
-<header class="bg-black border-b-2 border-purple-500 shadow-md py-4">
-  <div class="text-5xl max-w-6xl mx-auto px-4 flex justify-between items-center">
-  <a href="{{ url_for('main_routes.home') }}" class="text-purple-400 hover:text-purple-600 text-4xl font-bold mx-auto">⟁ Hermius ⟁</a>
-  <span class="text-purple-600 text-sm sm:text-base absolute top-6 right-4">Room Code: <strong>{{ code }}</strong></span>
-  </div>
-</header>
-
-<main class="flex flex-grow max-w-6xl mx-auto mt-8 min-h-[90vh]">
-  <aside class="w-72 bg-gradient-to-b from-black via-zinc-900 to-black border border-purple-600 p-5 shadow-[0_0_25px_rgba(168,85,247,0.4)] rounded-2xl overflow-hidden transition-all duration-300">
-  <h2 class="text-2xl font-bold text-purple-500 mb-4">Users in Room</h2>
-  <ul id="user-list" class="text-purple-400 space-y-1"></ul>
-  </aside>
-
-  <div class="flex-grow p-6">
-  <!-- Chat Message Display Box -->
-  <div class="bg-black border border-purple-600 rounded-2xl p-4 h-96 mb-4 shadow-[0_0_30px_rgba(168,85,247,0.3)] text-white overflow-y-auto space-y-2" id="chat-box"></div>
-
-  <!-- Typing Indicator -->
-  <div id="typing-indicator" class="text-sm italic text-purple-400 mb-3 ml-1"></div>
-
-  <!-- Chat Form -->
-  <form id="chat-form" class="flex items-center gap-3 mt-4 bg-gray-900 px-5 py-3 rounded-2xl shadow-[0_0_30px_rgba(168,85,247,0.25)] border border-purple-700 backdrop-blur-sm">
-
-    <!-- Message Input -->
-    <input id="message-input" type="text" placeholder="Type your message..." class="flex-grow px-4 py-2 rounded-xl bg-black text-purple-300 placeholder-purple-500 border border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-700 transition duration-150 shadow-inner">
-
-<!-- Emoji Button -->
-<button type="button" id="emoji-btn" title="Insert Emoji" class="text-2xl hover:scale-110 transition-transform duration-150 ease-in-out">😄</button>
-
-    <!-- Send Button -->
-    <button type="submit" class="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-150">Send</button>
-
-    <!-- Disconnect Button -->
-    <button id="disconnect-btn" class="ml-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-150">Disconnect</button>
-  </form>
-  </div>
-</main>
+    <body class="bg-black text-purple-400">
+      <header class="bg-black border-b-2 border-purple-500 shadow-md py-4">
+        <div class="text-5xl max-w-6xl mx-auto px-4 flex justify-between items-center">
+          <a href="{{ url_for('main_routes.home') }}" class="text-purple-400 hover:text-purple-600 text-4xl font-bold mx-auto">⟁ Hermius ⟁</a>
+          <span class="text-purple-600 text-sm sm:text-base absolute top-6 right-4">Room Code: <strong>{{ code }}</strong></span>
+        </div>
+      </header>
+      
+      <main class="flex flex-grow max-w-6xl mx-auto mt-8 min-h-[90vh]">
+        <aside class="w-72 bg-gradient-to-b from-black via-zinc-900 to-black border border-purple-600 p-5 shadow-[0_0_25px_rgba(168,85,247,0.4)] rounded-2xl overflow-hidden transition-all duration-300">
+          <h2 class="text-2xl font-extrabold text-purple-300 mb-5 text-center tracking-wide border-b border-purple-500 pb-2">
+            👥 Users in Room
+          </h2>
+    
+          <ul id="user-list" class="text-purple-200 space-y-2 text-sm max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-black px-1">
+            <!-- Example user (for style reference) -->
+            <!-- <li class="bg-purple-800/10 hover:bg-purple-800/20 px-3 py-2 rounded-md transition-all duration-200">User123</li> -->
+          </ul>
+        </aside>
+        
+        <div class="flex-grow p-6">
+          <!-- Chat Message Display Box -->
+          <div id="chat-box" class="bg-black border border-purple-600 rounded-2xl p-4 h-96 mb-4 shadow-[0_0_30px_rgba(168,85,247,0.3)] text-white overflow-y-auto space-y-2"></div>
+          
+          <!-- Typing Indicator -->
+          <div id="typing-indicator" class="text-sm italic text-purple-400 mb-3 ml-1"></div>
+          
+          <!-- Chat Form -->
+          <form id="chat-form" class="flex items-center gap-3 mt-4 bg-gray-900 px-5 py-3 rounded-2xl shadow-[0_0_30px_rgba(168,85,247,0.25)] border border-purple-700 backdrop-blur-sm">
+            
+            <!-- Emoji Button -->
+            <button type="button" id="emoji-btn" title="Insert Emoji" class="text-2xl hover:scale-110 transition-transform duration-150 ease-in-out">😄</button>
+            
+            <!-- Message Input -->
+            <input id="message-input" type="text" placeholder="Type your message..." class="flex-grow px-4 py-2 rounded-xl bg-black text-purple-300 placeholder-purple-500 border border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-700 transition duration-150 shadow-inner" />
+            
+            <!-- Send Button -->
+            <button type="submit" class="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-150">Send</button>
+            
+            <!-- Disconnect Button -->
+            <button id="disconnect-btn" class="ml-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition duration-150">Disconnect</button>
+          </form>
+        </div>
+      </main>
+    </body>
+    
 
 <footer class="fixed bottom-0 left-0 w-full p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
   <a href="{{ url_for('utility_routes.privacy_policy') }}" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
