@@ -4,3 +4,5 @@ python-dotenv
 flask_socketio
 datetime
 cryptography
+pytest
+pytest-flask
