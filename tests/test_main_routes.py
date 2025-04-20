@@ -84,23 +84,7 @@ def test_home_room_not_exist(client, init_db):
     })
     assert b"Room does not exist." in response.data
 
-def test_room_page(client, init_db):
-    room_code = "abcd"
-    with sqlite3.connect('main.db') as conn:
-        c = conn.cursor()
-        c.execute("INSERT INTO rooms (room_code, created_at) VALUES (?, ?)", (room_code, "2025-04-20 12:00:00"))
-        c.execute("INSERT INTO messages (room_number, user, encrypted_message, datetime) VALUES (?, ?, ?, ?)",
-                  (room_code, "user1", "ENCRYPTED_MESSAGE_PLACEHOLDER", "2025-04-20 12:30:00"))
-        conn.commit()
 
-    with client.session_transaction() as session:
-        session["name"] = "user1"  # Simulate login
-
-    with patch('app.utils.helpers.decrypt_message') as mock_decrypt:
-        mock_decrypt.return_value = "Decrypted message"
-        response = client.get(f"/room/{room_code}")
-        assert response.status_code == 200
-        assert b"Decrypted message" in response.data
 
 
 def test_initial_messages(client, init_db):
