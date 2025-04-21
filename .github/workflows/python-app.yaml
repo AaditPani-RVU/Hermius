@@ -3,7 +3,7 @@ name: CI + Docker Push
 on:
   push:
     branches:
-      - tree  # or 'master' or any branch you want
+      - tree  # Trigger only on push to 'tree' branch
 
 jobs:
   test-and-build:
@@ -25,7 +25,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest  # or your test command
+        pytest  # replace if you use unittest or another tool
 
     - name: Log in to Docker Hub
       if: success()
@@ -35,7 +35,8 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build Docker image
-      run: docker build -t yourdockerhubusername/your-image-name:latest .
+      run: docker build -t aaditbob509/my-flask-app:latest .
 
-    - name: Push Docker image
-      run: docker push yourdockerhubusername/your-image-name:latest
+    - name: Push Docker image (only from your repo)
+      if: github.repository_owner == 'AADITPANI-RVU'
+      run: docker push aaditbob509/my-flask-app:latest
