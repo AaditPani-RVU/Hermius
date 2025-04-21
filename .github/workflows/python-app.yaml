@@ -3,7 +3,7 @@ name: CI + Docker Push
 on:
   push:
     branches:
-      - main  # or 'master' or any branch you want
+      - tree  # or 'master' or any branch you want
 
 jobs:
   test-and-build:
