@@ -42,3 +42,9 @@ coverage.xml
 
 #database
 main.db
+
+k8s
+# Kubernetes configuration
+
+Dockerfile
+
