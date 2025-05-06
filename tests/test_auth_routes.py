@@ -46,7 +46,7 @@ def test_signup_login_logout(client):
     response = client.post("/signup", data={
         "username": random_username,
         "email": f"{random_username}@example.com",  # Ensure unique email as well
-        "password": "Test@1237",
+        "password": "Test@1238",
         "confirm_password": "Test@1238"
     }, follow_redirects=True)
 
