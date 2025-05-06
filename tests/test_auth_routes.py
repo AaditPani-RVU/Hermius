@@ -47,7 +47,7 @@ def test_signup_login_logout(client):
         "username": random_username,
         "email": f"{random_username}@example.com",  # Ensure unique email as well
         "password": "Test@1237",
-        "confirm_password": "Test@1237"
+        "confirm_password": "Test@1238"
     }, follow_redirects=True)
 
     # Check if the response was a redirect (status code 200 after redirection)
